@@ -1,0 +1,1 @@
+Eczane Veresiye masaüstü uygulaması
