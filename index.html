@@ -4782,7 +4782,11 @@ function renderPrescriptionPayments(){
       });
     });
   });
-  rows.sort((a,b)=>Number(b.payment.id||0)-Number(a.payment.id||0));
+  rows.sort((a,b)=>{
+    const ad=new Date(paymentCreatedIso(a.payment)).getTime();
+    const bd=new Date(paymentCreatedIso(b.payment)).getTime();
+    return (bd||0)-(ad||0) || String(b.payment.id||'').localeCompare(String(a.payment.id||''));
+  });
   if(!rows.length){
     const tr=document.createElement('tr');
     const td=document.createElement('td');
@@ -5090,7 +5094,11 @@ function renderReceiptNotifications(){
     });
   });
 
-  rows.sort((a,b)=>Number(b.payment.id||0)-Number(a.payment.id||0));
+  rows.sort((a,b)=>{
+    const ad=new Date(paymentCreatedIso(a.payment)).getTime();
+    const bd=new Date(paymentCreatedIso(b.payment)).getTime();
+    return (bd||0)-(ad||0) || String(b.payment.id||'').localeCompare(String(a.payment.id||''));
+  });
 
   const pending=rows.filter(x=>!x.payment.receiptIssued).length;
   $('receiptPendingCount').textContent=pending ? `${pending} bekleyen` : 'Tümü tamam';
