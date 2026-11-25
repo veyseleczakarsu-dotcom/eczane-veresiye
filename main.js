@@ -101,9 +101,11 @@ function setupAutoUpdates(){
     if(result.response===0) autoUpdater.quitAndInstall();
   });
   const checkForUpdates=()=>autoUpdater.checkForUpdates().catch(err=>console.error('Güncelleme kontrolü başarısız',err));
-  // Açılıştan sonra ve uygulama açık kaldığı sürece düzenli kontrol et.
+  // Açılışta, pencere öne geldiğinde ve kısa aralıklarla kontrol et.
   setTimeout(checkForUpdates,8000);
-  setInterval(checkForUpdates,10*60*1000);
+  setInterval(checkForUpdates,30*1000);
+  mainWindow?.on('focus',checkForUpdates);
+  app.on('activate',checkForUpdates);
 }
 if(gotSingleInstanceLock) app.whenReady().then(() => {
   if(app.isPackaged) Menu.setApplicationMenu(null);
