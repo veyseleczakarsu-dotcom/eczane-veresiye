@@ -87,7 +87,12 @@ function setupAutoUpdates(){
   let updateReady=false;
   let promptOpen=false;
   let snoozedUntil=0;
-  autoUpdater.on('error', err=>console.error('Otomatik güncelleme hatası',err));
+  autoUpdater.on('error', err=>{
+    updateReady=false;
+    promptOpen=false;
+    try{ mainWindow?.setOpacity?.(1); }catch(resetErr){ console.error(resetErr); }
+    console.error('Otomatik güncelleme hatası',err);
+  });
   autoUpdater.on('update-available', info=>{
     console.log(`Yeni sürüm bulundu; otomatik indiriliyor (${info.version}).`);
   });

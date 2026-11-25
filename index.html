@@ -3409,7 +3409,19 @@ function clearSensitiveViewState(){
   });
   // Aktarılmamış eski kayıtlar varsa veri kaybını önlemek için yerel veriyi koru.
   if(legacyMigrationPending){
+    selectedCustomerId=null;
+    paymentTarget=null;
+    pendingPayment=null;
     savePersistentState();
+    try{
+      renderCustomerResults('');
+      renderSelectedCustomer();
+      renderCustomerTable();
+      $('selectedCustomerBox')?.classList.add('hidden');
+      $('selectedCustomerBox')?.replaceChildren();
+    }catch(err){
+      console.error('Eski kayıtlar korunurken hassas ekranlar temizlenemedi',err);
+    }
     return;
   }
   customers=[];
