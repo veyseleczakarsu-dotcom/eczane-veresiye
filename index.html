@@ -1884,6 +1884,9 @@ function renderSelectedCustomer(){
   if(!c){
     $('customerSummaryEmpty').classList.remove('hidden');
     $('customerSummary').classList.add('hidden');
+    $('selectedCustomerBox')?.classList.add('hidden');
+    $('selectedCustomerBox')?.replaceChildren();
+    $('customerResults')?.replaceChildren();
     return;
   }
   $('customerSummaryEmpty').classList.add('hidden');
@@ -5630,6 +5633,10 @@ function clearCreditDraft(){
   selectedCustomerId=null;
   productList=[];
   ['customerSearch','barcode','qrCode','productName','price'].forEach(id=>{ if($(id)) $(id).value=''; });
+  // Seçim sonuçları ve seçili müşteri rozeti de form temizlenince kaldırılmalı.
+  $('customerResults')?.replaceChildren();
+  $('selectedCustomerBox')?.classList.add('hidden');
+  $('selectedCustomerBox')?.replaceChildren();
   $('otpModal').style.display='none';
   renderProducts();
   renderSelectedCustomer();
