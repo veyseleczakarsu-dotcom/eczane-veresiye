@@ -89,16 +89,31 @@ function setupAutoUpdates(){
     console.log(`Yeni sürüm bulundu; otomatik indiriliyor (${info.version}).`);
   });
   autoUpdater.on('update-downloaded', async()=>{
-    const result=await dialog.showMessageBox(mainWindow,{
-      type:'info',
-      title:'Güncelleme hazır',
-      message:'Yeni sürüm indirildi.',
-      detail:'Güncellemeyi tamamlamak için uygulama yeniden başlatılacak.',
-      buttons:['Şimdi yeniden başlat','Daha sonra'],
-      defaultId:0,
-      cancelId:1
-    });
-    if(result.response===0) autoUpdater.quitAndInstall();
+    // Kullanıcıya güncelleme başlamadan önce açıkça haber ver; pencereyi
+    // tamamen gizlemek yerine soluklaştırarak uygulamanın hâlâ açık olduğunu
+    // göster.
+    try{ mainWindow?.setOpacity?.(0.72); }catch(err){ console.error(err); }
+    try{
+      const result=await dialog.showMessageBox(mainWindow,{
+        type:'info',
+        title:'Güncelleme yapılacak',
+        message:'Yeni sürüm hazır.',
+        detail:'Güncellemeyi başlatırsan uygulama kısa süreliğine yeniden başlayacak. Açık oturumun korunacak; işlem sırasında pencere kısa süre soluk görünecek.',
+        buttons:['Güncellemeyi başlat','Daha sonra'],
+        defaultId:0,
+        cancelId:1
+      });
+      if(result.response===0){
+        try{ mainWindow?.setOpacity?.(0.55); }catch(err){ console.error(err); }
+        // Bildirimi okuyabilmesi için pencereyi kısa süre görünür bırak.
+        setTimeout(()=>autoUpdater.quitAndInstall(),700);
+      }else{
+        try{ mainWindow?.setOpacity?.(1); }catch(err){ console.error(err); }
+      }
+    }catch(err){
+      try{ mainWindow?.setOpacity?.(1); }catch(resetErr){ console.error(resetErr); }
+      console.error('Güncelleme bildirimi gösterilemedi',err);
+    }
   });
   const checkForUpdates=()=>autoUpdater.checkForUpdates().catch(err=>console.error('Güncelleme kontrolü başarısız',err));
   // Açılışta, pencere öne geldiğinde ve kısa aralıklarla kontrol et.
