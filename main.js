@@ -100,7 +100,10 @@ function setupAutoUpdates(){
     });
     if(result.response===0) autoUpdater.quitAndInstall();
   });
-  setTimeout(()=>autoUpdater.checkForUpdates().catch(err=>console.error('Güncelleme kontrolü başarısız',err)),8000);
+  const checkForUpdates=()=>autoUpdater.checkForUpdates().catch(err=>console.error('Güncelleme kontrolü başarısız',err));
+  // Açılıştan sonra ve uygulama açık kaldığı sürece düzenli kontrol et.
+  setTimeout(checkForUpdates,8000);
+  setInterval(checkForUpdates,10*60*1000);
 }
 if(gotSingleInstanceLock) app.whenReady().then(() => {
   if(app.isPackaged) Menu.setApplicationMenu(null);
