@@ -2919,8 +2919,13 @@ function saveAuthSession(session){
   currentAuthSession=session||null;
   try{
     if(session){
-      sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
+      // Oturum, uygulama güncellenip yeniden başlatıldığında da korunsun.
+      // Çıkışta iki depodan da silinir.
+      const serialized=JSON.stringify(session);
+      localStorage.setItem(AUTH_SESSION_KEY, serialized);
+      sessionStorage.setItem(AUTH_SESSION_KEY, serialized);
     }else{
+      localStorage.removeItem(AUTH_SESSION_KEY);
       sessionStorage.removeItem(AUTH_SESSION_KEY);
     }
   }catch(err){
@@ -2930,9 +2935,15 @@ function saveAuthSession(session){
 
 function readAuthSession(){
   try{
-    const raw=sessionStorage.getItem(AUTH_SESSION_KEY);
+    // Güncelleme sonrası localStorage oturumu korur; eski sürümden kalan
+    // sessionStorage kaydı varsa bir kez localStorage'a taşınır.
+    const raw=localStorage.getItem(AUTH_SESSION_KEY) || sessionStorage.getItem(AUTH_SESSION_KEY);
     if(!raw) return null;
-    return JSON.parse(raw);
+    const session=JSON.parse(raw);
+    if(!localStorage.getItem(AUTH_SESSION_KEY)){
+      localStorage.setItem(AUTH_SESSION_KEY,raw);
+    }
+    return session;
   }catch(err){
     return null;
   }
