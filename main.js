@@ -155,9 +155,13 @@ function setupAutoUpdates(){
       console.error('Güncelleme kontrolü başarısız',err);
     });
   };
-  // Açılışta ve seyrek aralıklarla kontrol et; odak değişimi yeni diyalog açmasın.
+  // Açılışta, pencere yeniden öne geldiğinde ve kısa aralıklarla kontrol et.
+  // Yayın dosyaları birkaç saniye gecikmeli hazır olsa bile sonraki denemede yakalanır.
   setTimeout(checkForUpdates,8000);
-  setInterval(checkForUpdates,30*60*1000);
+  setInterval(checkForUpdates,60*1000);
+  mainWindow.on('focus',()=>{
+    if(!updateReady && !promptOpen && Date.now()>=snoozedUntil) checkForUpdates();
+  });
 }
 if(gotSingleInstanceLock) app.whenReady().then(() => {
   if(app.isPackaged) Menu.setApplicationMenu(null);
