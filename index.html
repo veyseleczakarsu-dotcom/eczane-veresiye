@@ -4330,12 +4330,12 @@ function legacyPaymentProducts(tx,payment){
 async function updateReceiptSupabase(payment){
   if(!isUuid(payment.id)) return;
   const {url}=getSupabaseConnection();
-  const r=await fetch(url+'/rest/v1/payments?id=eq.'+encodeURIComponent(payment.id),{
-    method:'PATCH',
-    headers:{...sbHeaders(true),'Prefer':'return=minimal'},
+  const r=await fetch(url+'/rest/v1/rpc/update_payment_receipt_v1',{
+    method:'POST',
+    headers:sbHeaders(true),
     body:JSON.stringify({
-      receipt_issued:Boolean(payment.receiptIssued),
-      receipt_confirmed_at:payment.receiptIssued ? new Date().toISOString() : null
+      p_payment_id:String(payment.id),
+      p_receipt_issued:Boolean(payment.receiptIssued)
     })
   });
   if(!r.ok){
