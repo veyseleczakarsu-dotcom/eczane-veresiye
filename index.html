@@ -31,7 +31,7 @@ label{display:block;font-size:12px;color:#475569;margin-bottom:6px}
 input,textarea{caret-color:#0f172a}
 input{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;outline:none}
 input:focus,textarea:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.18)}
-#cardsNavBtn,#page-cards,#cardModal,#autoChargeCardInfo{display:none!important}
+#cardsNavBtn,#page-cards,#cardModal,#autoChargeCardInfo,#customerAccountRiskBox,#accountSavedCardSection,#accountAutoChargeAttemptsSection,#reportAutoChargeCard,#settingCustomerAutoChargeField{display:none!important}
 input:focus{border-color:#64748b;box-shadow:0 0 0 3px rgba(100,116,139,.12)}
 .btn{border:0;border-radius:10px;padding:11px 15px;cursor:pointer;font-weight:700}
 .primary{background:#111827;color:white}
@@ -409,7 +409,7 @@ th{color:#64748b;font-weight:600}
               <th>Ürün</th>
               <th>Tutar</th>
               <th>Vade</th>
-              <th>Otomatik Tahsilat</th>
+              <th class="auto-charge-column">Otomatik Tahsilat</th>
               <th>İşlemi Yapan</th>
               <th>Durum</th>
             </tr>
@@ -452,14 +452,14 @@ th{color:#64748b;font-weight:600}
         </div>
 
         <div class="card">
-          <h2>Son Tahsilatlar</h2>
+          <div class="topbar" style="margin-bottom:10px"><h2 style="margin:0">Son Tahsilatlar</h2><button class="btn secondary" id="printPaymentHistoryBtn" type="button">Müşteri dökümü yazdır</button></div>
           <table>
             <thead>
               <tr>
                 <th>Müşteri</th>
-                <th>Tarih</th>
-                <th>Saat</th>
-                <th>Tutar</th>
+                <th>Tahsilat sayısı</th>
+                <th>Toplam tahsilat</th>
+                <th>Son tahsilat</th>
                 <th>İşlemi Yapan</th>
               </tr>
             </thead>
@@ -646,6 +646,9 @@ th{color:#64748b;font-weight:600}
         <div class="report-statement-toolbar no-print">
           <input id="reportCustomerSearch" type="text" placeholder="Müşteri adı veya telefon ara">
           <select id="reportCustomerSelect" style="min-width:280px"></select>
+          <label style="min-width:145px">Başlangıç tarihi<input id="statementStartDate" type="date"></label>
+          <label style="min-width:145px">Bitiş tarihi<input id="statementEndDate" type="date"></label>
+          <button id="clearStatementDatesBtn" class="btn secondary" type="button">Tarihleri temizle</button>
         </div>
 
         <div id="reportCustomerSummary" class="report-customer-summary print-summary"></div>
@@ -676,14 +679,14 @@ th{color:#64748b;font-weight:600}
 
       <div class="report-grid">
         <div class="card">
-          <h2>En Çok Borcu Olan Müşteriler</h2>
+          <div class="topbar" style="margin-bottom:8px"><h2 style="margin:0">Borçta Kalan Müşteriler</h2><button class="btn secondary" id="exportDebtorsBtn" type="button">CSV indir</button></div>
           <table>
             <thead><tr><th>Müşteri</th><th>Açık İşlem</th><th>Toplam Borç</th></tr></thead>
             <tbody id="reportTopDebtors"></tbody>
           </table>
         </div>
 
-        <div class="card">
+        <div class="card" id="reportAutoChargeCard">
           <h2>Yaklaşan Vadeler</h2>
           <div class="muted" style="margin:-8px 0 10px">Önümüzdeki 7 gün içinde vadesi dolacak açık işlemler.</div>
           <table>
@@ -743,7 +746,7 @@ th{color:#64748b;font-weight:600}
         </div>
 
         <div class="settings-section">
-          <h2>Müşteri Bazlı Vade ve Otomatik Tahsilat</h2>
+          <h2>Müşteri Bazlı Vade</h2>
           <div class="settings-form">
             <div class="full">
               <label>Müşteri</label>
@@ -753,7 +756,7 @@ th{color:#64748b;font-weight:600}
               <label>Vade süresi (gün)</label>
               <input id="settingCustomerDueDays" type="number" min="1" max="45">
             </div>
-            <div>
+            <div id="settingCustomerAutoChargeField">
               <label>Karttan otomatik tahsilat günü</label>
               <input id="settingCustomerAutoChargeDays" type="number" min="1" max="45">
             </div>
@@ -1005,7 +1008,7 @@ th{color:#64748b;font-weight:600}
       <div id="accSettingsSummary" class="muted"></div>
     </div>
 
-    <div class="card" style="margin-bottom:16px">
+    <div class="card" id="accountSavedCardSection" style="margin-bottom:16px">
       <h3 style="margin-top:0">Kayıtlı Kart</h3>
       <div id="accCardSummary" class="muted"></div>
     </div>
@@ -1013,7 +1016,7 @@ th{color:#64748b;font-weight:600}
     <div class="card" style="margin-bottom:16px">
       <h3 style="margin-top:0">Açık Veresiyeler</h3>
       <table>
-        <thead><tr><th>Tarih</th><th>Ürünler</th><th>Toplam</th><th>Ödenen</th><th>Kalan</th><th>Vade</th><th>İşlemi Yapan</th><th>Onay</th><th>Oto. Tahsilat</th></tr></thead>
+        <thead><tr><th>Tarih</th><th>Ürünler</th><th>Toplam</th><th>Ödenen</th><th>Kalan</th><th>Vade</th><th>İşlemi Yapan</th><th>Onay</th><th class="auto-charge-column">Oto. Tahsilat</th></tr></thead>
         <tbody id="accOpenTransactions"></tbody>
       </table>
     </div>
@@ -1034,7 +1037,7 @@ th{color:#64748b;font-weight:600}
       </table>
     </div>
 
-    <div class="card">
+    <div class="card" id="accountAutoChargeAttemptsSection">
       <h3 style="margin-top:0">Otomatik Tahsilat Denemeleri</h3>
       <table>
         <thead><tr><th>Tarih</th><th>Saat</th><th>Sonuç</th><th>Tutar / Hata</th><th>İşlemi Yapan</th></tr></thead>
@@ -1518,9 +1521,7 @@ function openCustomerAccount(customerId){
 
   const dueDays = Number(c.dueDays || c.paymentTermDays || 30);
   const autoDays = Number(c.autoChargeDays || c.autoChargeDay || 30);
-  $('accSettingsSummary').innerHTML=
-    `Vade süresi: <b>${dueDays} gün</b> &nbsp;•&nbsp; `+
-    `Karttan otomatik tahsilat: <b>${autoDays}. gün</b>`;
+  $('accSettingsSummary').innerHTML=`Vade süresi: <b>${dueDays} gün</b>`;
 
   const card=CARD_PAYMENTS_ENABLED ? savedCardForCustomer(c.id) : null;
   if(card && CARD_PAYMENTS_ENABLED){
@@ -1533,13 +1534,13 @@ function openCustomerAccount(customerId){
 
   const openBody=$('accOpenTransactions');
   if(!openTx.length){
-    accountEmptyRow(openBody,9,'Açık veresiye yok.');
+    accountEmptyRow(openBody,8,'Açık veresiye yok.');
   }else{
     openBody.innerHTML='';
     openTx.forEach(tx=>{
       const tr=document.createElement('tr');
       const prod=(tx.products||[]).map(p=>p.name).join(', ')||'-';
-      [tx.date||'-',prod,money(tx.total),money(tx.paidAmount||0),money(remainingOf(tx)),(tx.dueDate||'-'),tx.operatorName||'Eski kayıt / belirtilmemiş',approvalSummary(tx),autoChargeText(tx)].forEach(v=>{
+      [tx.date||'-',prod,money(tx.total),money(tx.paidAmount||0),money(remainingOf(tx)),(tx.dueDate||'-'),tx.operatorName||'Eski kayıt / belirtilmemiş',approvalSummary(tx)].forEach(v=>{
         const td=document.createElement('td'); td.textContent=v; tr.appendChild(td);
       });
       tr.style.cursor='pointer';
@@ -1843,10 +1844,15 @@ function renderCustomerResults(query=''){
   box.innerHTML='';
   if(!q) return;
 
-  const results=customers.filter(c =>
+  const results=[...new Map(customers.filter(c =>
     c.name.toLocaleLowerCase('tr-TR').includes(q) ||
     (qPhone.length>=3 && normalizePhoneForMatch(c.phone).includes(qPhone))
-  ).slice(0,6);
+  ).map(c=>[String(c.id),c])).values()].slice(0,6);
+
+  if(selectedCustomerId && results.length===1 && String(results[0].id)===String(selectedCustomerId)){
+    box.innerHTML='<div class="muted">Bu müşteri zaten seçili.</div>';
+    return;
+  }
 
   if(!results.length){
     box.innerHTML='<div class="muted">Müşteri bulunamadı.</div>';
@@ -1947,9 +1953,6 @@ function showTransactionDetail(tx){
   ['Toplam tutar',money(tx.total)],
   ['Tahsil edilen',money(paidOf(tx))],
   ['Kalan borç',money(remainingOf(tx))],
-  ['Otomatik tahsilat',autoChargeText(tx)],
-  ['Otomatik tahsilat denemesi',String((tx.autoChargeAttempts||[]).length)],
-  ['Son otomatik hata',tx.autoChargeLastError||'-'],
   ['Durum',tx.status]
 ];
   pairs.forEach(([a,b])=>{ const li=document.createElement('li'); const s=document.createElement('span');s.textContent=a;const strong=document.createElement('b');strong.textContent=b;li.append(s,strong);summary.appendChild(li);});
@@ -2640,7 +2643,7 @@ function renderLedger(){
   if(!rows.length){
     const tr=document.createElement('tr');
     const td=document.createElement('td');
-    td.colSpan=9;
+    td.colSpan=8;
     td.className='empty';
     td.textContent='Açık veresiye işlemi bulunamadı.';
     tr.appendChild(td);
@@ -2659,7 +2662,6 @@ function renderLedger(){
       productText,
       money(tx.total),
       dueDateFrom(tx.date, tx.dueDays),
-      autoChargeText(tx),
       tx.operatorName || 'Eski kayıt / belirtilmemiş'
     ];
 
@@ -2683,14 +2685,14 @@ function renderLedger(){
 
 function exportLedgerCsv(){
   const q=($('ledgerSearch')?.value||'').trim().toLocaleLowerCase('tr-TR');
-  const rows=[['Müşteri','Telefon','Tarih','Saat','Ürünler','Toplam','Kalan','Vade','Otomatik Tahsilat','İşlemi Yapan','Durum']];
+  const rows=[['Müşteri','Telefon','Tarih','Saat','Ürünler','Toplam','Kalan','Vade','İşlemi Yapan','Durum']];
   customers.forEach(c=>(c.transactions||[]).forEach(tx=>{
     normalizeTransaction(tx);
     if(remainingOf(tx)<=0.005) return;
     const productText=(tx.products||[]).map(p=>p.name).join(', ');
     const haystack=(c.name+' '+formatPhone(c.phone)+' '+normalizePhoneForMatch(c.phone)+' '+productText+' '+(tx.products||[]).map(p=>p.barcode||'').join(' ')).toLocaleLowerCase('tr-TR');
     if(q && !haystack.includes(q)) return;
-    rows.push([c.name,formatPhone(c.phone),tx.date||'',tx.time||'',productText,Number(tx.total||0).toFixed(2),Number(remainingOf(tx)).toFixed(2),dueDateFrom(tx.date,tx.dueDays),autoChargeText(tx),tx.operatorName||'Eski kayıt / belirtilmemiş',paidOf(tx)>0?'Kısmi':'Açık']);
+    rows.push([c.name,formatPhone(c.phone),tx.date||'',tx.time||'',productText,Number(tx.total||0).toFixed(2),Number(remainingOf(tx)).toFixed(2),dueDateFrom(tx.date,tx.dueDays),tx.operatorName||'Eski kayıt / belirtilmemiş',paidOf(tx)>0?'Kısmi':'Açık']);
   }));
   if(rows.length===1){ alert('Aktarılacak açık veresiye bulunamadı.'); return; }
   const csv='\uFEFF'+rows.map(row=>row.map(csvCell).join(';')).join('\r\n');
@@ -2717,7 +2719,6 @@ function showLedgerTransactionDetail(customer,tx){
     ['Toplam tutar',money(tx.total)],
     ['Tahsil edilen',money(paidOf(tx))],
     ['Kalan borç',money(remainingOf(tx))],
-    ['Otomatik tahsilat',autoChargeText(tx)],
     ['Durum',tx.status]
   ];
 
@@ -3828,7 +3829,7 @@ async function saveSettingsFromForm(){
     renderReports();
     renderCards();
     updateAutoChargeBox();
-    alert(`${customer.name} için vade ${customer.dueDays} gün, otomatik tahsilat ${customer.autoChargeDays}. gün ve eczane ayarları Supabase’e kaydedildi.`);
+    alert(`${customer.name} için vade ${customer.dueDays} gün ve eczane ayarları Supabase’e kaydedildi.`);
   }catch(err){
     customer.dueDays=customerSnapshot.dueDays;
     customer.autoChargeDays=customerSnapshot.autoChargeDays;
@@ -4318,6 +4319,7 @@ function rebuildPaymentHistory(){
           id:p.id,
           customerId:c.id,
           customerName:c.name,
+          phone:c.phone,
           txId:tx.id,
           date:p.date,
           time:p.time,
@@ -4901,20 +4903,40 @@ function renderPaymentHistory(){
   const body=$('paymentHistoryTable');
   body.innerHTML='';
 
-  if(!globalPaymentHistory.length){
+  const q=($('paymentSearch')?.value||'').trim().toLocaleLowerCase('tr-TR');
+  const grouped=new Map();
+  globalPaymentHistory.forEach(p=>{
+    const haystack=(p.customerName+' '+formatPhone(p.phone||'')+' '+normalizePhoneForMatch(p.phone||'')).toLocaleLowerCase('tr-TR');
+    if(q && !haystack.includes(q)) return;
+    const key=String(p.customerId||p.customerName);
+    if(!grouped.has(key)) grouped.set(key,{...p,count:0,total:0,lastDate:p.date||'',lastTime:p.time||''});
+    const row=grouped.get(key);
+    row.count++;
+    row.total+=Number(p.amount||0);
+    const current=trDateTimeToIso(p.date,p.time);
+    const last=trDateTimeToIso(row.lastDate,row.lastTime);
+    if(new Date(current)>new Date(last)){ row.lastDate=p.date||''; row.lastTime=p.time||''; }
+  });
+  const rows=[...grouped.values()].sort((a,b)=>{
+    const aa=new Date(trDateTimeToIso(a.lastDate,a.lastTime)).getTime()||0;
+    const bb=new Date(trDateTimeToIso(b.lastDate,b.lastTime)).getTime()||0;
+    return bb-aa;
+  });
+
+  if(!rows.length){
     const tr=document.createElement('tr');
     const td=document.createElement('td');
     td.colSpan=5;
     td.className='empty';
-    td.textContent='Henüz tahsilat yok.';
+    td.textContent=q ? 'Aramaya uygun tahsilat yok.' : 'Henüz tahsilat yok.';
     tr.appendChild(td);
     body.appendChild(tr);
     return;
   }
 
-  globalPaymentHistory.slice(0,20).forEach(p=>{
+  rows.slice(0,50).forEach(p=>{
     const tr=document.createElement('tr');
-    [p.customerName,p.date,p.time,money(p.amount),p.operatorName||'Eski kayıt / belirtilmemiş'].forEach(v=>{
+    [p.customerName,p.count+' tahsilat',money(p.total),p.lastDate+' '+(p.lastTime||''),p.operatorName||'Eski kayıt / belirtilmemiş'].forEach(v=>{
       const td=document.createElement('td');
       td.textContent=v;
       tr.appendChild(td);
@@ -5016,7 +5038,12 @@ function renderReportCustomerStatement(){
 
   $('printPharmacyName').textContent=appSettings.pharmacyName||'Eczane';
   $('printPharmacyContact').textContent=appSettings.pharmacyPhone ? `Telefon: ${appSettings.pharmacyPhone}` : '';
-  $('printGeneratedAt').textContent=`Döküm tarihi: ${new Date().toLocaleString('tr-TR')}`;
+  const startValue=$('statementStartDate')?.value||'';
+  const endValue=$('statementEndDate')?.value||'';
+  const start=startValue ? new Date(startValue+'T00:00:00') : null;
+  const end=endValue ? new Date(endValue+'T23:59:59.999') : null;
+  const rangeText=startValue||endValue ? ` • Aralık: ${startValue||'başlangıç yok'} — ${endValue||'bitiş yok'}` : '';
+  $('printGeneratedAt').textContent=`Döküm tarihi: ${new Date().toLocaleString('tr-TR')}${rangeText}`;
   const identity=$('printPatientIdentity');
   const nameLabel=document.createElement('strong');
   nameLabel.textContent='Müşteri:';
@@ -5025,7 +5052,10 @@ function renderReportCustomerStatement(){
   identity.textContent='';
   identity.append(nameLabel,` ${customer.name}`,document.createElement('br'),phoneLabel,` ${formatPhone(customer.phone)}`);
 
-  const txs=[...(customer.transactions||[])].sort((a,b)=>{
+  const txs=[...(customer.transactions||[])].filter(tx=>{
+    const d=parseTrDate(tx.date);
+    return (!start || (d && d>=start)) && (!end || (d && d<=end));
+  }).sort((a,b)=>{
     const da=parseTrDate(a.date), db=parseTrDate(b.date);
     return (db?.getTime()||0)-(da?.getTime()||0);
   });
@@ -5130,6 +5160,27 @@ function printCustomerStatement(){
   }
 
   renderReportCustomerStatement();
+  window.print();
+}
+
+function printPaymentHistoryStatement(){
+  const q=($('paymentSearch')?.value||'').trim().toLocaleLowerCase('tr-TR');
+  const qPhone=normalizePhoneForMatch(q);
+  const matches=customers.filter(c=>{
+    const hasPayments=(c.transactions||[]).some(tx=>(tx.payments||[]).length);
+    if(!hasPayments) return false;
+    return !q || c.name.toLocaleLowerCase('tr-TR').includes(q) || (qPhone.length>=3 && normalizePhoneForMatch(c.phone).includes(qPhone));
+  });
+  if(matches.length!==1){
+    alert(matches.length ? 'Birden fazla müşteri bulundu. Raporlar bölümünden müşteriyi seçip yazdırabilirsin.' : 'Ödeme geçmişi bulunan müşteriyi arat.');
+    showPage('reports');
+    return;
+  }
+  $('reportCustomerSearch').value=matches[0].name;
+  renderReportCustomerOptions();
+  $('reportCustomerSelect').value=String(matches[0].id);
+  renderReportCustomerStatement();
+  showPage('reports');
   window.print();
 }
 
@@ -5387,8 +5438,7 @@ function renderReports(){
   const debtors=customers
     .map(c=>({customer:c,debt:debtOf(c),count:openCountOf(c)}))
     .filter(x=>x.debt>0.005)
-    .sort((a,b)=>b.debt-a.debt)
-    .slice(0,10);
+    .sort((a,b)=>b.debt-a.debt);
 
   const debtBody=$('reportTopDebtors');
   if(!debtors.length){
@@ -5465,6 +5515,23 @@ function renderReports(){
       autoBody.appendChild(tr);
     });
   }
+}
+
+function exportDebtorsCsv(){
+  const rows=[['Müşteri','Telefon','Açık işlem','Toplam borç']];
+  customers
+    .map(c=>({customer:c,debt:debtOf(c),count:openCountOf(c)}))
+    .filter(x=>x.debt>0.005)
+    .sort((a,b)=>b.debt-a.debt)
+    .forEach(x=>rows.push([x.customer.name,formatPhone(x.customer.phone),String(x.count),Number(x.debt).toFixed(2)]));
+  if(rows.length===1){ alert('Borçta kalan müşteri yok.'); return; }
+  const csv='\uFEFF'+rows.map(row=>row.map(csvCell).join(';')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='borclu-musteriler.csv';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 
 function openEditCustomer(id){
@@ -5797,17 +5864,11 @@ $('confirmOtpBtn').addEventListener('click',async()=>{
     renderCustomerTable();
     renderLedger();
 
-    productList=[];
-    renderProducts();
-    updateAutoChargeBox();
+    const newDebt=debtOf(c);
+    await clearCreditDraft();
     clearDemoOtp();
     $('otpModal').style.display='none';
-
-    const autoText=tx.autoChargeEnabled && tx.autoChargeCard
-      ? `\nOtomatik tahsilat: ${tx.autoChargeCard.brand} •••• ${tx.autoChargeCard.last4} kartından ${Number(tx.autoChargeDays)||30}. günde tahsilat denenecek.`
-      : '';
-
-    alert('Veresiye Supabase’e kaydedildi. SMS onay kaydı (demo) işlendi. Yeni toplam borç: '+money(debtOf(c))+autoText);
+    alert('Veresiye Supabase’e kaydedildi. SMS onay kaydı (demo) işlendi. Yeni toplam borç: '+money(newDebt));
   }catch(err){
     console.error(err);
     alert('Veresiye kaydedilemedi veya sonucu doğrulanamadı. İşlem yerel kayıtlara eklenmedi.\n'+
@@ -5842,8 +5903,9 @@ $('operatorLockSelect').addEventListener('keydown',e=>{
 $('customerListSearch').addEventListener('input',renderCustomerTable);
 $('ledgerSearch').addEventListener('input',renderLedger);
 $('exportLedgerBtn').addEventListener('click',exportLedgerCsv);
-$('paymentSearch').addEventListener('input',renderPayments);
+$('paymentSearch').addEventListener('input',()=>{ renderPayments(); renderPaymentHistory(); });
 $('exportPaymentsBtn').addEventListener('click',exportPaymentsCsv);
+$('printPaymentHistoryBtn').addEventListener('click',printPaymentHistoryStatement);
 $('cancelPaymentBtn').addEventListener('click',()=>{$('paymentModal').style.display='none';paymentTarget=null;});
 $('paymentAmount').addEventListener('focus',()=>{ paymentAmountEditing=true; });
 $('paymentAmount').addEventListener('input',e=>{
@@ -5876,8 +5938,16 @@ $('cancelCardBtn').addEventListener('click',()=>{$('cardModal').style.display='n
 $('saveCardBtn').addEventListener('click',saveCard);
 $('cardSearch').addEventListener('input',renderCards);
 $('refreshReportsBtn').addEventListener('click',renderReports);
+$('exportDebtorsBtn').addEventListener('click',exportDebtorsCsv);
 $('reportCustomerSearch').addEventListener('input',renderReportCustomerOptions);
 $('reportCustomerSelect').addEventListener('change',renderReportCustomerStatement);
+$('statementStartDate').addEventListener('change',renderReportCustomerStatement);
+$('statementEndDate').addEventListener('change',renderReportCustomerStatement);
+$('clearStatementDatesBtn').addEventListener('click',()=>{
+  $('statementStartDate').value='';
+  $('statementEndDate').value='';
+  renderReportCustomerStatement();
+});
 $('reportDateFilter').addEventListener('change',renderDateReport);
 $('reportDateTodayBtn').addEventListener('click',()=>{
   const d=new Date();
