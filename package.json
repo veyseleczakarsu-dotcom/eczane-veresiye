@@ -1,0 +1,44 @@
+{
+  "name": "eczane-veresiye-masaustu",
+  "version": "1.0.3",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^37.2.6",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.eczane.veresiye",
+    "productName": "Eczane Veresiye",
+    "files": [
+      "index.html",
+      "main.js",
+      "package.json",
+      "README.txt"
+    ],
+    "win": {
+      "target": "nsis",
+      "artifactName": "Eczane-Veresiye-Kurulum.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "veyseleczakarsu-dotcom",
+      "repo": "eczane-veresiye",
+      "releaseType": "release"
+    }
+  },
+  "allowScripts": {
+    "electron@37.10.3": true
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11"
+  }
+}
