@@ -84,11 +84,17 @@ function setupAutoUpdates(){
   // Kurulum, aktif işlem yarıda kalmasın diye yeniden başlatma onayından sonra yapılır.
   autoUpdater.autoDownload=true;
   autoUpdater.autoInstallOnAppQuit=true;
+  let updateReady=false;
+  let promptOpen=false;
+  let snoozedUntil=0;
   autoUpdater.on('error', err=>console.error('Otomatik güncelleme hatası',err));
   autoUpdater.on('update-available', info=>{
     console.log(`Yeni sürüm bulundu; otomatik indiriliyor (${info.version}).`);
   });
   autoUpdater.on('update-downloaded', async()=>{
+    if(updateReady || promptOpen) return;
+    updateReady=true;
+    promptOpen=true;
     // Kullanıcıya güncelleme başlamadan önce açıkça haber ver; pencereyi
     // tamamen gizlemek yerine soluklaştırarak uygulamanın hâlâ açık olduğunu
     // göster.
@@ -105,22 +111,33 @@ function setupAutoUpdates(){
       });
       if(result.response===0){
         try{ mainWindow?.setOpacity?.(0.55); }catch(err){ console.error(err); }
+        try{
+          await mainWindow?.webContents?.executeJavaScript(
+            "localStorage.setItem('eczaneVeresiyeUpdateRestartAt',String(Date.now()))"
+          );
+        }catch(err){ console.error('Güncelleme işareti yazılamadı',err); }
         // Bildirimi okuyabilmesi için pencereyi kısa süre görünür bırak.
-        setTimeout(()=>autoUpdater.quitAndInstall(),700);
+        setTimeout(()=>autoUpdater.quitAndInstall(true,true),700);
       }else{
+        updateReady=false;
+        snoozedUntil=Date.now()+2*60*60*1000;
         try{ mainWindow?.setOpacity?.(1); }catch(err){ console.error(err); }
       }
+      promptOpen=false;
     }catch(err){
+      updateReady=false;
+      promptOpen=false;
       try{ mainWindow?.setOpacity?.(1); }catch(resetErr){ console.error(resetErr); }
       console.error('Güncelleme bildirimi gösterilemedi',err);
     }
   });
-  const checkForUpdates=()=>autoUpdater.checkForUpdates().catch(err=>console.error('Güncelleme kontrolü başarısız',err));
-  // Açılışta, pencere öne geldiğinde ve kısa aralıklarla kontrol et.
+  const checkForUpdates=()=>{
+    if(updateReady || promptOpen || Date.now()<snoozedUntil) return;
+    autoUpdater.checkForUpdates().catch(err=>console.error('Güncelleme kontrolü başarısız',err));
+  };
+  // Açılışta ve seyrek aralıklarla kontrol et; odak değişimi yeni diyalog açmasın.
   setTimeout(checkForUpdates,8000);
-  setInterval(checkForUpdates,30*1000);
-  mainWindow?.on('focus',checkForUpdates);
-  app.on('activate',checkForUpdates);
+  setInterval(checkForUpdates,30*60*1000);
 }
 if(gotSingleInstanceLock) app.whenReady().then(() => {
   if(app.isPackaged) Menu.setApplicationMenu(null);

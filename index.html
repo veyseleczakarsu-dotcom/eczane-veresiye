@@ -31,7 +31,7 @@ label{display:block;font-size:12px;color:#475569;margin-bottom:6px}
 input,textarea{caret-color:#0f172a}
 input{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;outline:none}
 input:focus,textarea:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.18)}
-#cardsNavBtn,#page-cards,#cardModal,#accountCardSection,#autoChargeCardInfo{display:none!important}
+#cardsNavBtn,#page-cards,#cardModal,#autoChargeCardInfo{display:none!important}
 input:focus{border-color:#64748b;box-shadow:0 0 0 3px rgba(100,116,139,.12)}
 .btn{border:0;border-radius:10px;padding:11px 15px;cursor:pointer;font-weight:700}
 .primary{background:#111827;color:white}
@@ -1522,8 +1522,8 @@ function openCustomerAccount(customerId){
     `Vade süresi: <b>${dueDays} gün</b> &nbsp;•&nbsp; `+
     `Karttan otomatik tahsilat: <b>${autoDays}. gün</b>`;
 
-  const card=savedCardForCustomer(c.id);
-  if(card){
+  const card=CARD_PAYMENTS_ENABLED ? savedCardForCustomer(c.id) : null;
+  if(card && CARD_PAYMENTS_ENABLED){
     const cardLabel=document.createElement('b');
     cardLabel.textContent=`${card.brand||'Kart'} •••• ${card.last4||''}`;
     $('accCardSummary').replaceChildren(cardLabel,`  Son kullanma: ${card.expiry||'-'}`);
@@ -2337,8 +2337,12 @@ async function loadApplicationDataFromSupabase(){
     sbFetchRows('/rest/v1/transaction_items?select=id,transaction_id,product_name,barcode,qr_code,price,cash_paid_amount,prescription_settled,prescription_settled_at,created_at&order=created_at.asc,id.asc'),
     sbFetchRows('/rest/v1/payments?select=id,transaction_id,customer_id,operator_name,amount,payment_type,receipt_issued,receipt_confirmed_at,created_at&order=created_at.asc,id.asc'),
     sbFetchRows('/rest/v1/payment_items?select=id,payment_id,transaction_item_id,product_name,barcode,qr_code,amount,created_at&order=created_at.asc,id.asc'),
-    sbFetchRows('/rest/v1/saved_cards?select=id,customer_id,provider,provider_token,brand,last4,expiry_month,expiry_year,is_active,created_at&is_active=eq.true&order=created_at.asc,id.asc'),
-    sbFetchRows('/rest/v1/auto_charge_attempts?select=id,transaction_id,customer_id,saved_card_id,amount,result,error_message,next_retry_at,created_at&order=created_at.asc,id.asc')
+    CARD_PAYMENTS_ENABLED
+      ? sbFetchRows('/rest/v1/saved_cards?select=id,customer_id,brand,last4,expiry_month,expiry_year,is_active,created_at&is_active=eq.true&order=created_at.asc,id.asc')
+      : Promise.resolve([]),
+    CARD_PAYMENTS_ENABLED
+      ? sbFetchRows('/rest/v1/auto_charge_attempts?select=id,transaction_id,customer_id,saved_card_id,amount,result,error_message,next_retry_at,created_at&order=created_at.asc,id.asc')
+      : Promise.resolve([])
   ]);
 
   const customerMap=new Map();
@@ -2505,6 +2509,8 @@ async function loadApplicationDataFromSupabase(){
     renderSelectedCustomer();
   }else{
     selectedCustomerId=null;
+    renderSelectedCustomer();
+    renderCreditRiskWarning();
   }
 }
 
@@ -3138,10 +3144,10 @@ async function requestPasswordReset(){
   }
   try{
     const redirectTo='eczane-veresiye://auth-recovery';
-    const res=await fetch(url+'/auth/v1/recover',{
+    const res=await fetch(url+'/auth/v1/recover?redirect_to='+encodeURIComponent(redirectTo),{
       method:'POST',
       headers:{'apikey':key,'Content-Type':'application/json'},
-      body:JSON.stringify({email:email.trim(),redirect_to:redirectTo})
+      body:JSON.stringify({email:email.trim()})
     });
     if(!res.ok){
       const text=await res.text();
@@ -3256,8 +3262,10 @@ async function loginWithSupabase(){
       setAuthLoginStatus('Giriş başarılı. Bazı eski tahsilatlar henüz aktarılmadı; sonraki girişte tekrar denenecek.',false);
     }
     try{
-      await migrateSavedCardsToSupabase();
-      await migrateAutoChargeAttemptsToSupabase();
+      if(CARD_PAYMENTS_ENABLED){
+        await migrateSavedCardsToSupabase();
+        await migrateAutoChargeAttemptsToSupabase();
+      }
     }catch(err){
       migrationsOk=false;
       console.error('Kart / otomatik tahsilat migration hatası',err);
@@ -3288,7 +3296,14 @@ async function bootstrapSupabaseAuth(){
     return;
   }
 
-  let session=readAuthSession();
+  let allowPersistedSession=false;
+  try{
+    const marker=Number(localStorage.getItem('eczaneVeresiyeUpdateRestartAt')||0);
+    allowPersistedSession=marker>0 && Date.now()-marker<5*60*1000;
+    localStorage.removeItem('eczaneVeresiyeUpdateRestartAt');
+  }catch(err){ console.error('Güncelleme oturum işareti okunamadı',err); }
+  let session=allowPersistedSession ? readAuthSession() : null;
+  if(!allowPersistedSession) saveAuthSession(null);
   if(!session){
     setAuthLoginStatus('E-posta ve şifrenle giriş yap.',null);
     return;
@@ -3339,8 +3354,10 @@ async function bootstrapSupabaseAuth(){
       setAuthLoginStatus('Oturum açıldı. Bazı eski tahsilatlar henüz aktarılmadı; sonraki girişte tekrar denenecek.',false);
     }
     try{
-      await migrateSavedCardsToSupabase();
-      await migrateAutoChargeAttemptsToSupabase();
+      if(CARD_PAYMENTS_ENABLED){
+        await migrateSavedCardsToSupabase();
+        await migrateAutoChargeAttemptsToSupabase();
+      }
     }catch(err){
       migrationsOk=false;
       console.error('Kart / otomatik tahsilat migration hatası',err);
@@ -3361,7 +3378,7 @@ function logoutSupabase(){
   const token=currentAuthSession?.access_token;
   if(url && key && token){
     // Refresh token'ı sunucuda da geçersiz kıl (sonucu beklenmez).
-    nativeFetch(url+'/auth/v1/logout',{
+    nativeFetch(url+'/auth/v1/logout?scope=local',{
       method:'POST',
       headers:{'apikey':key,'Authorization':'Bearer '+token}
     }).catch(err=>console.error('Sunucu tarafı çıkış hatası',err));
@@ -3915,6 +3932,10 @@ function savedCardForCustomer(customerId){
 function updateAutoChargeBox(){
   const info=$('autoChargeCardInfo');
   if(!info) return;
+  if(!CARD_PAYMENTS_ENABLED){
+    info.textContent='Kartla otomatik tahsilat şu anda kapalı.';
+    return;
+  }
 
   const c=selectedCustomer();
   if(!c){
@@ -3932,6 +3953,7 @@ function updateAutoChargeBox(){
 }
 
 function autoChargeText(tx){
+  if(!CARD_PAYMENTS_ENABLED) return 'Kapalı';
   if(!tx.autoChargeEnabled || !tx.autoChargeCard) return 'Yok';
   normalizeTransaction(tx);
   if(tx.status==='Ödendi' || tx.autoChargeStatus==='success') return 'Tahsil edildi';
@@ -5627,7 +5649,8 @@ async function resolveUncertainPendingCredit(){
   return true;
 }
 
-function clearCreditDraft(){
+async function clearCreditDraft(){
+  if(pendingCreditSubmitted && !(await resolveUncertainPendingCredit())) return;
   clearDemoOtp();
   discardPendingCreditTx();
   selectedCustomerId=null;
@@ -5638,8 +5661,11 @@ function clearCreditDraft(){
   $('selectedCustomerBox')?.classList.add('hidden');
   $('selectedCustomerBox')?.replaceChildren();
   $('otpModal').style.display='none';
+  $('otpInput') && ($('otpInput').value='');
+  $('otpText') && ($('otpText').textContent='');
   renderProducts();
   renderSelectedCustomer();
+  renderCreditRiskWarning();
   updateAutoChargeBox();
 }
 
