@@ -2119,6 +2119,12 @@ function trDateTimeToIso(dateText,timeText){
   return new Date().toISOString();
 }
 
+function recordDateTimeValue(record){
+  const iso=record?.createdAtIso||record?.created_at;
+  const parsed=iso ? Date.parse(iso) : Date.parse(trDateTimeToIso(record?.date,record?.time));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function dueIsoForCustomer(c,createdIso,days){
   const d=new Date(createdIso);
   d.setDate(d.getDate()+Number(days||c?.dueDays||30));
@@ -2374,6 +2380,7 @@ async function loadApplicationDataFromSupabase(){
       approvalOperatorName:row.approval_operator_name||row.operator_name||null,
       date:dt.date,
       time:dt.time,
+      createdAtIso:row.created_at||null,
       total:Number(row.total_amount||0),
       paidAmount:Number(row.paid_amount||0),
       status:row.status==='paid'?'Ödendi':'Açık',
@@ -2610,7 +2617,8 @@ function renderLedger(){
 
         const haystack=[
           c.name,
-          c.phone,
+          formatPhone(c.phone),
+          normalizePhoneForMatch(c.phone),
           productText,
           ...tx.products.map(p=>p.name),
           ...tx.products.map(p=>p.barcode),
@@ -2623,7 +2631,7 @@ function renderLedger(){
       });
   });
 
-  rows.sort((a,b)=>b.tx.id-a.tx.id);
+  rows.sort((a,b)=>recordDateTimeValue(b.tx)-recordDateTimeValue(a.tx));
 
   $('ledgerCount').textContent=String(rows.length);
   const body=$('ledgerTable');
@@ -2680,9 +2688,9 @@ function exportLedgerCsv(){
     normalizeTransaction(tx);
     if(remainingOf(tx)<=0.005) return;
     const productText=(tx.products||[]).map(p=>p.name).join(', ');
-    const haystack=(c.name+' '+c.phone+' '+productText+' '+(tx.products||[]).map(p=>p.barcode||'').join(' ')).toLocaleLowerCase('tr-TR');
+    const haystack=(c.name+' '+formatPhone(c.phone)+' '+normalizePhoneForMatch(c.phone)+' '+productText+' '+(tx.products||[]).map(p=>p.barcode||'').join(' ')).toLocaleLowerCase('tr-TR');
     if(q && !haystack.includes(q)) return;
-    rows.push([c.name,c.phone,tx.date||'',tx.time||'',productText,Number(tx.total||0).toFixed(2),Number(remainingOf(tx)).toFixed(2),dueDateFrom(tx.date,tx.dueDays),autoChargeText(tx),tx.operatorName||'Eski kayıt / belirtilmemiş',paidOf(tx)>0?'Kısmi':'Açık']);
+    rows.push([c.name,formatPhone(c.phone),tx.date||'',tx.time||'',productText,Number(tx.total||0).toFixed(2),Number(remainingOf(tx)).toFixed(2),dueDateFrom(tx.date,tx.dueDays),autoChargeText(tx),tx.operatorName||'Eski kayıt / belirtilmemiş',paidOf(tx)>0?'Kısmi':'Açık']);
   }));
   if(rows.length===1){ alert('Aktarılacak açık veresiye bulunamadı.'); return; }
   const csv='\uFEFF'+rows.map(row=>row.map(csvCell).join(';')).join('\r\n');
@@ -3171,7 +3179,7 @@ async function saveRecoveredPassword(){
   const again=$('authNewPasswordAgain')?.value||'';
   const {url,key}=getSupabaseConnection();
   if(!token){ setAuthLoginStatus('Şifre yenileme bağlantısı geçersiz veya süresi dolmuş.',false); return; }
-  if(password.length<6){ setAuthLoginStatus('Yeni şifre en az 6 karakter olmalı.',false); return; }
+  if(password.length<10){ setAuthLoginStatus('Yeni şifre en az 10 karakter olmalı.',false); return; }
   if(password!==again){ setAuthLoginStatus('Şifreler aynı değil.',false); return; }
   try{
     const res=await fetch(url+'/auth/v1/user',{
@@ -3729,23 +3737,21 @@ async function migrateAndLoadCloudConfig(){
 }
 
 async function updateCustomerTimingSupabase(customer){
-  await patchCustomerSupabase(customer);
-
   const {url}=getSupabaseConnection();
   const r=await fetch(
-    url+'/rest/v1/credit_transactions?customer_id=eq.'+encodeURIComponent(customer.id)+'&status=eq.open',
+    url+'/rest/v1/rpc/update_customer_timing_v1',
     {
-      method:'PATCH',
+      method:'POST',
       headers:{...sbHeaders(true),'Prefer':'return=minimal'},
       body:JSON.stringify({
-        due_days:Number(customer.dueDays||30),
-        auto_charge_days:Number(customer.autoChargeDays||30),
-        updated_at:new Date().toISOString()
+        p_customer_id:customer.id,
+        p_due_days:Number(customer.dueDays||30),
+        p_auto_charge_days:Number(customer.autoChargeDays||30)
       })
     }
   );
   const text=await r.text();
-  if(!r.ok) throw new Error('Açık veresiyelerin vadesi güncellenemedi ('+r.status+'): '+text);
+  if(!r.ok) throw new Error('Müşteri vadesi güncellenemedi ('+r.status+'): '+text);
 }
 
 function renderSettings(){
@@ -4444,12 +4450,12 @@ function renderPayments(){
       if(remainingOf(tx)<=0.005) return;
 
       const productText=tx.products.map(p=>p.name).join(' ');
-      const haystack=(c.name+' '+c.phone+' '+productText).toLocaleLowerCase('tr-TR');
+      const haystack=(c.name+' '+formatPhone(c.phone)+' '+normalizePhoneForMatch(c.phone)+' '+productText).toLocaleLowerCase('tr-TR');
       if(!q || haystack.includes(q)) rows.push({customer:c,tx});
     });
   });
 
-  rows.sort((a,b)=>b.tx.id-a.tx.id);
+  rows.sort((a,b)=>recordDateTimeValue(b.tx)-recordDateTimeValue(a.tx));
   $('paymentOpenCount').textContent=String(rows.length);
 
   const body=$('paymentTable');
@@ -4501,10 +4507,10 @@ function exportPaymentsCsv(){
   const rows=[['Müşteri','Telefon','Tarih','Saat','Tutar','Yöntem','İşlemi Yapan','Fiş/Fatura']];
   customers.forEach(c=>(c.transactions||[]).forEach(tx=>{
     const productText=(tx.products||[]).map(p=>p.name).join(' ');
-    const haystack=(c.name+' '+c.phone+' '+productText).toLocaleLowerCase('tr-TR');
+    const haystack=(c.name+' '+formatPhone(c.phone)+' '+normalizePhoneForMatch(c.phone)+' '+productText).toLocaleLowerCase('tr-TR');
     if(q && !haystack.includes(q)) return;
     (tx.payments||[]).forEach(p=>rows.push([
-      c.name,c.phone,p.date||'',p.time||'',Number(p.amount||0).toFixed(2),
+      c.name,formatPhone(c.phone),p.date||'',p.time||'',Number(p.amount||0).toFixed(2),
       p.method==='prescription'?'Reçeteli ödeme':(p.autoCharge?'Otomatik kart':'Tahsilat'),
       p.operatorName||'Eski kayıt / belirtilmemiş',p.receiptIssued?'Kesildi':'Bekliyor'
     ]));
@@ -4967,7 +4973,7 @@ function renderReportCustomerOptions(){
 
   const matches=customers.filter(c=>{
     if(!search) return true;
-    return c.name.toLowerCase().includes(search) || String(c.phone||'').toLowerCase().includes(search);
+    return c.name.toLocaleLowerCase('tr-TR').includes(search) || formatPhone(c.phone).toLowerCase().includes(search) || normalizePhoneForMatch(c.phone).includes(normalizePhoneForMatch(search));
   });
 
   select.innerHTML='';
@@ -5253,7 +5259,7 @@ function renderDateReport(){
       }
     });
   }));
-  rows.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  rows.sort((a,b)=>(b.time||'').localeCompare(a.time||''));
   summary.innerHTML=`<div><span>Veresiye</span><strong>${money(creditTotal)}</strong><small>${creditCount} işlem</small></div><div><span>Tahsilat</span><strong>${money(collectionTotal)}</strong><small>${collectionCount} işlem</small></div><div><span>Toplam hareket</span><strong>${creditCount+collectionCount}</strong></div><div><span>Net veresiye artışı</span><strong>${money(creditTotal-collectionTotal)}</strong></div>`;
   if(!rows.length){renderEmptyReportRow(body,7,'Bu tarihte kayıtlı hareket yok.');return;}
   rows.forEach(r=>{

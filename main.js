@@ -1,11 +1,21 @@
 const { app, BrowserWindow, Menu, dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
+const fs = require('fs');
 
 const RECOVERY_SCHEME = 'eczane-veresiye';
 const RECOVERY_PREFIX = RECOVERY_SCHEME + '://auth-recovery';
 let mainWindow = null;
 let pendingDeepLink = null;
+
+function writeUpdateLog(message,error){
+  try{
+    const detail=error ? ` ${error.stack||error.message||String(error)}` : '';
+    const logDir=app.getPath('logs');
+    fs.mkdirSync(logDir,{recursive:true});
+    fs.appendFileSync(path.join(logDir,'update.log'),`[${new Date().toISOString()}] ${message}${detail}\n`);
+  }catch{}
+}
 
 function recoveryHashFromArg(arg) {
   if (typeof arg !== 'string') return null;
@@ -91,6 +101,7 @@ function setupAutoUpdates(){
     updateReady=false;
     promptOpen=false;
     try{ mainWindow?.setOpacity?.(1); }catch(resetErr){ console.error(resetErr); }
+    writeUpdateLog('Otomatik güncelleme hatası',err);
     console.error('Otomatik güncelleme hatası',err);
   });
   autoUpdater.on('update-available', info=>{
@@ -133,12 +144,16 @@ function setupAutoUpdates(){
       updateReady=false;
       promptOpen=false;
       try{ mainWindow?.setOpacity?.(1); }catch(resetErr){ console.error(resetErr); }
+      writeUpdateLog('Güncelleme bildirimi gösterilemedi',err);
       console.error('Güncelleme bildirimi gösterilemedi',err);
     }
   });
   const checkForUpdates=()=>{
     if(updateReady || promptOpen || Date.now()<snoozedUntil) return;
-    autoUpdater.checkForUpdates().catch(err=>console.error('Güncelleme kontrolü başarısız',err));
+    autoUpdater.checkForUpdates().catch(err=>{
+      writeUpdateLog('Güncelleme kontrolü başarısız',err);
+      console.error('Güncelleme kontrolü başarısız',err);
+    });
   };
   // Açılışta ve seyrek aralıklarla kontrol et; odak değişimi yeni diyalog açmasın.
   setTimeout(checkForUpdates,8000);
